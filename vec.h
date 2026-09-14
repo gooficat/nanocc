@@ -7,6 +7,7 @@ void *vec_create(size_t size);
 void *vec_push(void *vec, void const *val);
 void *vec_pop(void *vec);
 void *vec_free(void *vec);
+size_t vec_len(void *vec);
 
 #define vec(type) type *
 #define vec_create(type) vec_create(sizeof(type))

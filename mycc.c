@@ -1,5 +1,8 @@
-#include <stdio.h>
+#include "clex.h"
+#include "parse.h"
 
-int main(int argc, char **argv) {
-	puts("Hello, World");
+int main()
+{
+	lexer_init("tests/a.c");
+	parse();
 }

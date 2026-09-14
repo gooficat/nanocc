@@ -3,8 +3,12 @@
 
 #include <stdio.h>
 #include <stddef.h>
+#include "mycc.h"
+#include "vec.h"
 
 #define LINE_BUFFER_LEN 4096
+
+extern char const * const TOKENS[];
 
 struct file_state 
 {
@@ -30,8 +34,16 @@ struct token
   size_t index;
 };
 
+struct pool
+{
+  vec(struct c_const) constants;
+  vec(char const *) identifiers;
+};
+
 struct lexer
 {
+  struct token token;
+  struct pool pool;
   struct file_state file;
   char buffer[LINE_BUFFER_LEN];
   char *seeker;
@@ -39,7 +51,7 @@ struct lexer
 
 extern struct lexer lexer;
 
-void lexer_open(char const *file_path);
+void lexer_init(char const *file_path);
 void lexer_next(void);
 void lexer_close(void);
 
