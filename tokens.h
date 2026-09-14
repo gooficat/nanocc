@@ -1,3 +1,8 @@
+#ifndef TOK
+#define TOK(id, str)
+#define TOKISNOTDEFINEDHERE
+#endif
+
 TOK(INT, "int")
 TOK(CHAR, "char")
 TOK(FLOAT, "float")
@@ -22,3 +27,7 @@ TOK(MINUS, "-")
 TOK(ASTER, "*")
 TOK(AMPER, "&")
 
+#ifdef TOKISNOTDEFINEDHERE
+#undef TOK
+#undef TOKISNOTDEFINEDHERE
+#endif

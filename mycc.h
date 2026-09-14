@@ -9,6 +9,7 @@
 
 enum c_type_type
 {
+  C_TYPE_UNKNOWN,
   C_TYPE_INT,
   C_TYPE_FLOAT,
   C_TYPE_VOID,
