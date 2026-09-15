@@ -16,6 +16,7 @@ enum c_type_type
   C_TYPE_POINTER,
   C_TYPE_STRUCT_OR_UNION,
   C_TYPE_ARRAY,
+  C_TYPE_FUNCTION,
 };
 
 struct c_type_integer
@@ -51,13 +52,20 @@ struct c_type_array
   size_t length;
 };
 
+struct c_type_function
+{
+  struct c_type *return_type;
+  vec(struct c_var) params;
+};
+
 union c_type_val
 {
   struct c_type_integer integer;
   struct c_type_floating floating;
   struct c_type_pointer pointer;
   struct c_type_struct_or_union struct_or_union;
-  struct c_type_array c_type_array;
+  struct c_type_array array;
+  struct c_type_function function;
 };
 
 struct c_type
@@ -79,6 +87,7 @@ struct c_var
   enum c_var_type type;
   char const *name;
   struct c_type c_type;
+  bool is_function;
 };
 
 enum c_const_type
