@@ -45,9 +45,9 @@ static void lexer_add_constant(struct c_const const *constant)
   lexer.pool.constants = vec_push(lexer.pool.constants, constant);
 }
 
-static void lexer_add_identifier(char const *identifier)
+static void lexer_add_identifier(char *const *identifier)
 {
-  lexer.pool.identifiers = vec_push(lexer.pool.identifiers, &identifier);
+  lexer.pool.identifiers = vec_push(lexer.pool.identifiers, identifier);
 }
 
 void lexer_next(void)
@@ -157,7 +157,8 @@ void lexer_next(void)
       identifier = malloc(len + 1);
       memcpy(identifier, lexer.seeker, len);
       identifier[len] = '\0';
-      lexer_add_identifier(identifier);
+      lexer_add_identifier(&identifier);
+      printf("Index of ident thingy is %zu %s %s\n", lexer.token.index, identifier, lexer.pool.identifiers[lexer.token.index]);
     }
 token_found:
   lexer.seeker += len;

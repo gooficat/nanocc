@@ -1,6 +1,7 @@
 #include "vec.h"
 #include "mycc.h"
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,6 +20,41 @@ struct parse_unit {
 };
 
 static struct parse_unit unit;
+
+static size_t size_of_type(struct c_type *type)
+{
+  switch (type->type)
+  {
+    case C_TYPE_UNKNOWN:
+      printf("Cannot find type of unknown\n");
+      exit(EXIT_FAILURE);
+    case C_TYPE_INT:
+      return 4; /* TODO */
+    case C_TYPE_FLOAT:
+      return 4;
+    case C_TYPE_VOID:
+      printf("Cannot find type of unknown\n");
+      exit(EXIT_FAILURE);
+    case C_TYPE_POINTER:
+      return 8;
+    case C_TYPE_STRUCT_OR_UNION: {
+        size_t size;
+        size_t i;
+        size = 0;
+        for (i = 0; i < vec_len(type->val.struct_or_union.members); ++i)
+        {
+          size_t type_size;
+          type_size = size_of_type(&type->val.struct_or_union.members[i]);
+          size += type_size + (8 - (type_size % 8));
+        }
+        return size;
+      };
+    case C_TYPE_ARRAY:
+      return size_of_type(type->val.array.type) * type->val.array.length;
+    case C_TYPE_FUNCTION:
+      return 8;
+  }
+}
 
 static void parse_var(struct c_var *var)
 {
@@ -97,8 +133,13 @@ static void parse_var(struct c_var *var)
   }
   if (lexer.token.type == TOK_IDENTIFIER)
   {
-    var->name = lexer.pool.identifiers[lexer.token.type];
+    printf("named %s (%zu)\n", lexer.pool.identifiers[lexer.token.index], lexer.token.index);
+    var->name = lexer.pool.identifiers[lexer.token.index];
     lexer_next();
+  }
+  else
+  {
+    printf("No name given, %i\n", lexer.token.type);
   }
   if (lexer.token.type == TOK_PAREN_L)
   {
@@ -136,6 +177,25 @@ static void enter_scope(void)
   *previous = unit.scope;
   unit.scope.previous = previous;
   unit.scope.vars = vec_create(struct c_var);
+}
+
+static void gen_frame(void)
+{
+  size_t len;
+  if (vec_len(unit.scope.vars) != 1 || unit.scope.vars[0].c_type.type != C_TYPE_VOID)
+  {
+    size_t i;
+    len = 0;
+    for (i = 0; i < vec_len(unit.scope.vars); ++i)
+    {
+      size_t type_len;
+      type_len += size_of_type(&unit.scope.vars[i].c_type);
+      len += type_len + (8 - (type_len % 8));
+    }
+    fprintf(unit.file, "\tsub %zu, %%rsp\n", len);
+  }
+  fprintf(unit.file, "\tpush %%rbp\n"
+                     "\tmov %%rbp, %%rsp\n");
 }
 
 static void exit_scope(void)
@@ -229,10 +289,7 @@ static void c_var_free(struct c_var *var)
   c_type_free(&var->c_type);
 }
 
-static void write_var(struct c_var const * const var)
-{
-  
-}
+
 
 static void add_var(struct c_var *var)
 {
@@ -276,7 +333,6 @@ static void add_var(struct c_var *var)
           {
             c_var_free(existing);
             *existing = *var;
-            write_var(var);
           }
         }
       }
@@ -285,7 +341,6 @@ static void add_var(struct c_var *var)
   else
   {
     vec_push(unit.scope.vars, var);
-    write_var(var);
   }
 }
 
@@ -294,7 +349,7 @@ static void output_constant(struct c_const const *const constant)
   switch (constant->type)
   {
     case C_CONST_INTEGER:
-      fprintf(unit.file, "\tmov %%rax, $%lld\\n", constant->val.integer.integer);
+      fprintf(unit.file, "\tmov $%jd, %%rax\n", constant->val.integer.integer);
       break;
     default:
       printf("Unimplemented constant category");
@@ -323,15 +378,19 @@ static void parse_order(void)
     case TOK_RETURN:
       lexer_next();
       parse_expr();
+      fprintf(unit.file, "\tpop %%rbp\n"
+                         "\tret\n");
       break;
     case TOK_GOTO:
-      
+      lexer_next();
+      fprintf(unit.file, "\tgoto %s\n", lexer.pool.identifiers[lexer.token.index]);
+      break;
     default:
       exit(EXIT_FAILURE);
   }
 }
 
-static void parse_decl();
+static void parse_decl(void);
 
 static void parse_stmt(void)
 {
@@ -345,7 +404,7 @@ static void parse_stmt(void)
     lexer_next();
     while (lexer.token.type != TOK_BRACE_R)
     {
-      parse_decl();
+      parse_stmt();
     }
     lexer_next();
     exit_scope();
@@ -375,10 +434,14 @@ static void parse_decl(void)
     for (i = 0; i < vec_len(var.c_type.val.function.params); ++i) {
       add_var(&var.c_type.val.function.params[i]);
     }
+    fprintf(unit.file, "%s:\n", var.name);
+    gen_frame();
     while (lexer.token.type != TOK_BRACE_R)
     {
       parse_stmt();
     }
+    fprintf(unit.file, "\tpop %%rbp\n"
+           "\tret\n");
     exit_scope();
   }
   else if (lexer.token.type == TOK_COMMA)
@@ -399,6 +462,7 @@ void parse(char const *input_path)
   unit.file = fopen(input_path, "w");
   if (unit.file == NULL)
   {
+    printf("File invalid or failed to open\n");
     exit(EXIT_FAILURE);
   }
   unit.labels = vec_create(char const *);
@@ -409,4 +473,5 @@ void parse(char const *input_path)
   {
     parse_decl();
   }
+  fclose(unit.file);
 }
