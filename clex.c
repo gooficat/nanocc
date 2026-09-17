@@ -13,7 +13,15 @@ static void lexer_get_buffer(void)
   lexer.seeker = lexer.buffer;
   if (fgets(lexer.buffer, LINE_BUFFER_LEN, lexer.file.fptr) == NULL)
   {
-    exit(EXIT_FAILURE);
+    lexer.buffer[0] = '\0';
+  }
+  else
+  {
+    if (lexer.buffer[strlen(lexer.buffer) - 1] != '\n')
+    {
+      printf("Line too long!\n");
+      exit(EXIT_FAILURE);
+    }
   }
 }
 
@@ -22,6 +30,7 @@ void lexer_init(char const *file_path)
   lexer.file.fptr = fopen(file_path, "r");
   if (lexer.file.fptr == NULL)
   {
+    printf("Error opening file\n");
     exit(EXIT_FAILURE);
   }
   lexer.file.line_num = 0;
@@ -67,6 +76,7 @@ void lexer_next(void)
     str = malloc(i + 1);
     if (str == NULL)
     {
+      printf("Alloc failed\n");
       exit(EXIT_FAILURE);
     }
     memcpy(str, lexer.seeker, i);
@@ -91,6 +101,7 @@ void lexer_next(void)
           constant.val.integer.integer = '\n';
           break;
         default:
+          printf("Bad escape sequence\n");
           exit(EXIT_FAILURE);
       }
     }

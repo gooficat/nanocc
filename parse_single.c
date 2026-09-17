@@ -15,6 +15,7 @@ struct scope {
 struct parse_unit {
   struct scope scope;
   vec(char const *) labels;
+  FILE *file;
 };
 
 static struct parse_unit unit;
@@ -22,7 +23,8 @@ static struct parse_unit unit;
 static void parse_var(struct c_var *var)
 {
   memset(var, 0, sizeof *var);
-  while (token_is_type(lexer.token.type))
+
+  while (token_is_type(lexer.token.type) == true)
   {
     switch (lexer.token.type)
     {
@@ -33,6 +35,7 @@ static void parse_var(struct c_var *var)
         }
         else if (var->c_type.type != C_TYPE_INT || var->c_type.val.integer.is_affirmed == true)
         {
+          printf("Type error: type is not assignable as integer.\n");
           exit(EXIT_FAILURE);
         }
         break;
@@ -46,6 +49,7 @@ static void parse_var(struct c_var *var)
                 var->c_type.val.integer.is_long ||
                 var->c_type.val.integer.is_short)
         {
+          printf("Type error: Char can only be char!\n");
           exit(EXIT_FAILURE);
         }
         break;
@@ -56,8 +60,10 @@ static void parse_var(struct c_var *var)
         }
         else
         {
+          printf("Type error: float cannot have these specifiers!\n");
           exit(EXIT_FAILURE);
         }
+        break;
       case TOK_VOID:
         if (var->c_type.type == C_TYPE_UNKNOWN)
         {
@@ -65,11 +71,55 @@ static void parse_var(struct c_var *var)
         }
         else
         {
+          printf("Type error: void cannot have such properties!\n");
           exit(EXIT_FAILURE);
         }
+        break;
       default:
+        printf("Token %i not allowed here\n", lexer.token.type);
         exit(EXIT_FAILURE);
     }
+    lexer_next();
+    if (lexer.token.type == TOK_ASTER)
+    {
+      struct c_type *under;
+      under = malloc(sizeof *under);
+      if (!under)
+      {
+        printf("Alloc failed\n");
+        exit(EXIT_FAILURE);
+      }
+      memcpy(under, &var->c_type, sizeof *under);
+      var->c_type.type = C_TYPE_POINTER;
+      var->c_type.val.pointer.underlying = under;
+      lexer_next();
+    }
+  }
+  if (lexer.token.type == TOK_IDENTIFIER)
+  {
+    var->name = lexer.pool.identifiers[lexer.token.type];
+    lexer_next();
+  }
+  if (lexer.token.type == TOK_PAREN_L)
+  {
+    var->is_function = true;
+    {
+      struct c_type return_type;
+      return_type = var->c_type;
+      var->c_type.type = C_TYPE_FUNCTION;
+      var->c_type.val.function.return_type = malloc(sizeof *var->c_type.val.function.return_type);
+/*      if ()*/
+      memcpy(var->c_type.val.function.return_type, &return_type, sizeof *var->c_type.val.function.return_type);
+    }
+    lexer_next();
+    var->c_type.val.function.params = vec_create(struct c_var);
+    while (lexer.token.type != TOK_PAREN_R)
+    {
+      struct c_var param;
+      parse_var(&param);
+      vec_push(var->c_type.val.function.params, &param);
+    }
+    lexer_next();
   }
 }
 
@@ -79,6 +129,7 @@ static void enter_scope(void)
   previous = malloc(sizeof *previous);
   if (previous == NULL)
   {
+    printf("Alloc failed\n");
     exit(EXIT_FAILURE);
   }
   memcpy(previous, &unit.scope, sizeof *previous);
@@ -93,6 +144,7 @@ static void exit_scope(void)
   previous = unit.scope.previous;
   if (previous == NULL)
   {
+    printf("Exiting into nothing!\n");
     exit(EXIT_FAILURE);
   }
   unit.scope = *previous;
@@ -138,8 +190,48 @@ static bool c_types_same(struct c_type *a, struct c_type *b)
   case C_TYPE_POINTER:
     return c_types_same(a->val.pointer.underlying, b->val.pointer.underlying) == true;
   default:
+    printf("Type incompatibility\n");
     exit(EXIT_FAILURE);
   }
+}
+
+static void c_type_free(struct c_type *type)
+{
+  size_t i;
+  i = 0;
+  switch (type->type)
+  {
+    case C_TYPE_FUNCTION:
+      while (i < vec_len(type->val.function.params))
+      {
+        c_type_free(&type->val.function.params[i].c_type);
+      }
+      vec_free(type->val.function.params);
+      break;
+    case C_TYPE_POINTER:
+      c_type_free(type->val.pointer.underlying);
+      free(type->val.pointer.underlying);
+      break;
+    case C_TYPE_STRUCT_OR_UNION:
+      while (i < vec_len(type->val.struct_or_union.members))
+      {
+        c_type_free(&type->val.struct_or_union.members[i]);
+      }
+      vec_free(type->val.struct_or_union.members);
+      break;
+    default:
+      break;
+  }
+}
+
+static void c_var_free(struct c_var *var)
+{
+  c_type_free(&var->c_type);
+}
+
+static void write_var(struct c_var const * const var)
+{
+  
 }
 
 static void add_var(struct c_var *var)
@@ -156,22 +248,114 @@ static void add_var(struct c_var *var)
     }
   }
   if (existing != NULL) {
-    if (unit.scope.previous != NULL)
+    if (!c_types_same(&var->c_type, &existing->c_type))
     {
-      if (var->type != C_VAR_EXTERN || existing->type != C_VAR_EXTERN || c_types_same(&var->c_type, &existing->c_type) == false)
-      {
-        exit(EXIT_FAILURE);
-      }
+      printf("Existing not same!\n");
+      exit(EXIT_FAILURE);
     }
     else
     {
-      
+      if (unit.scope.previous != NULL)
+      {
+        if (var->type != C_VAR_EXTERN || existing->type != C_VAR_EXTERN)
+        {
+          printf("Either must be extern");
+          exit(EXIT_FAILURE);
+        }
+      }
+      else
+      {
+        if (var->type != C_VAR_EXTERN)
+        {
+          if (existing->type != C_VAR_EXTERN)
+          {
+            printf("Both must be extern");
+            exit(EXIT_FAILURE);
+          }
+          else
+          {
+            c_var_free(existing);
+            *existing = *var;
+            write_var(var);
+          }
+        }
+      }
     }
   }
   else
   {
     vec_push(unit.scope.vars, var);
+    write_var(var);
   }
+}
+
+static void output_constant(struct c_const const *const constant)
+{
+  switch (constant->type)
+  {
+    case C_CONST_INTEGER:
+      fprintf(unit.file, "\tmov %%rax, $%lld\\n", constant->val.integer.integer);
+      break;
+    default:
+      printf("Unimplemented constant category");
+      exit(EXIT_FAILURE);
+  }
+}
+
+static void parse_expr(void)
+{
+  switch (lexer.token.type)
+  {
+    case TOK_CONSTANT:
+      output_constant(&lexer.pool.constants[lexer.token.index]);
+      lexer_next();
+      break;
+    default:
+      printf("expr not compatible with this");
+      exit(EXIT_FAILURE);
+  }
+}
+
+static void parse_order(void)
+{
+  switch (lexer.token.type)
+  {
+    case TOK_RETURN:
+      lexer_next();
+      parse_expr();
+      break;
+    case TOK_GOTO:
+      
+    default:
+      exit(EXIT_FAILURE);
+  }
+}
+
+static void parse_decl();
+
+static void parse_stmt(void)
+{
+  if (lexer.token.type >= TOK_RETURN && lexer.token.type <= TOK_GOTO)
+  {
+    parse_order();
+  }
+  else if (lexer.token.type == TOK_BRACE_L)
+  {
+    enter_scope();
+    lexer_next();
+    while (lexer.token.type != TOK_BRACE_R)
+    {
+      parse_decl();
+    }
+    lexer_next();
+    exit_scope();
+  }
+  else
+  {
+    printf("Unimplemented\n");
+    exit(EXIT_FAILURE);
+  }
+  lexer_next();
 }
 
 static void parse_decl(void)
@@ -193,28 +377,36 @@ static void parse_decl(void)
     }
     while (lexer.token.type != TOK_BRACE_R)
     {
-      parse_decl();
+      parse_stmt();
     }
     exit_scope();
   }
+  else if (lexer.token.type == TOK_COMMA)
+  {
+    printf("Unimplemented\n");
+    exit(EXIT_FAILURE);
+  }
+  else if (lexer.token.type != TOK_SEMI)
+  {
+    printf("%i is not a semicolon!\n", lexer.token.type);
+    exit(EXIT_FAILURE); 
+  }
+  lexer_next();
 }
 
-void parse(void)
+void parse(char const *input_path)
 {
+  unit.file = fopen(input_path, "w");
+  if (unit.file == NULL)
+  {
+    exit(EXIT_FAILURE);
+  }
   unit.labels = vec_create(char const *);
   unit.scope.vars = vec_create(struct c_var);
   unit.scope.previous = NULL;
 
   while (lexer.token.type != TOK_EOF)
   {
-    if (lexer.token.type < TOK_IDENTIFIER)
-    {
-      printf("%s\n", TOKENS[lexer.token.type]);
-    }
-    else
-    {
-      printf("token of %i\n", lexer.token.type);
-    }
-    lexer_next();
+    parse_decl();
   }
 }

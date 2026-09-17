@@ -4,5 +4,5 @@
 int main()
 {
 	lexer_init("tests/a.c");
-	parse();
+	parse("output.s");
 }
