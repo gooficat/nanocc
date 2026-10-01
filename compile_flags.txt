@@ -1,0 +1,8 @@
+-g
+-O0
+-Wall
+-Wextra
+-Wpedantic
+-Werror
+-std=c89
+-I./inc
