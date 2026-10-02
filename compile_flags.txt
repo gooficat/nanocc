@@ -3,6 +3,5 @@
 -Wall
 -Wextra
 -Wpedantic
--Werror
--std=c89
+-ansi
 -I./inc
