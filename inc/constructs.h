@@ -1,7 +1,7 @@
 #ifndef CONSTRUCTS_H_
 #define CONSTRUCTS_H_
 
-#include <bits/stdint-uintn.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -23,7 +23,7 @@ struct constant {
   } val;
 };
 
-enum variable_storage {
+enum var_storage {
   VAR_STOR_EXTERN,
   VAR_STOR_STATIC,
   VAR_STOR_GLOBAL,
@@ -31,16 +31,55 @@ enum variable_storage {
   VAR_STOR_TYPEDEF
 };
 
-struct type {
-  uint8_t is_const : 1;
-  uint8_t is_volatile : 1;
-  uint8_t is_restrict : 1;
-  uint8_t is_atomic : 1;
-  uint8_t longness : 2;
+enum type_type {
+  TYPE_UNKNOWN,
+  TYPE_VOID,
+  TYPE_INT,
+  TYPE_FLOAT,
+  TYPE_STRUC,
+  TYPE_PTR,
+  TYPE_FUNC
 };
 
-struct variable {
-  enum variable_storage storage;
+struct type_list {
+  struct type *vals;
+  size_t len;
+};
+
+struct var_list {
+  struct var *vals;
+  size_t len;
+};
+
+enum int_type { INT_CHAR, INT_SHORT, INT_INT, INT_LONG, INT_LONG_LONG };
+
+union type_vals {
+  struct type *under;
+  struct {
+    struct type_list members;
+    bool is_unified;
+  } comp;
+  struct {
+    bool is_signed : 1;
+    enum int_type type;
+  } int_;
+  struct {
+    struct type *under;
+    size_t len;
+  } array;
+  struct {
+    struct type *return_type;
+    struct var_list params;
+  } func;
+};
+
+struct type {
+  enum type_type type;
+  union type_vals vals;
+};
+
+struct var {
+  enum var_storage storage;
   struct type type;
   char const *name;
 };
