@@ -4,15 +4,18 @@
 #include "constructs.h"
 #include <stddef.h>
 
-struct pool {
-  struct {
-    char const **vals;
-    size_t len;
-  } identifiers;
-  struct {
-    struct constant *vals;
-    size_t len;
-  } constants;
+struct pool
+{
+	struct
+	{
+		char const **vals;
+		size_t len;
+	} identifiers;
+	struct
+	{
+		struct constant *vals;
+		size_t len;
+	} constants;
 };
 
 extern struct pool POOL;

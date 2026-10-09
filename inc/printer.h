@@ -8,6 +8,6 @@
 
 void printer_init(char const *);
 void printer_comment(char const *);
-void printer_declare(struct variable *);
+void printer_declare(struct var *);
 
 #endif

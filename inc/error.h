@@ -5,12 +5,14 @@
  * This allows for easy debugging, as we can set a breakpoint here to trace back
  * errors.*/
 
-enum error {
-  ERROR_INTERNAL,
-  ERROR_PARSER,
-  ERROR_LEXER,
-  ERROR_PRINTER,
-  ERROR_OTHER
+enum error
+{
+	ERROR_INTERNAL,
+	ERROR_PARSER,
+	ERROR_LEXER,
+	ERROR_PRINTER,
+	ERROR_OTHER,
+	ERROR_ARGUMENTS
 };
 
 void error(enum error);

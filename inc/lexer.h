@@ -10,12 +10,13 @@
 
 #define LEXER_BUFFER_LEN 4096
 
-struct lexer {
-  FILE *file;
-  char buffer[LEXER_BUFFER_LEN];
-  char *src;
-  size_t line_num;
-  char const *const file_path;
+struct lexer
+{
+	FILE *file;
+	char buffer[LEXER_BUFFER_LEN];
+	char *src;
+	size_t line_num;
+	char const *const file_path;
 };
 
 extern struct lexer LEXER;
