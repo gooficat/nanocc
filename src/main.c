@@ -1,0 +1,5 @@
+main() {
+	next();
+	while (decl())
+		;
+}

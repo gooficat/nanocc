@@ -1,5 +1,8 @@
-Language: C
 BasedOnStyle: Microsoft
-UseTab: Always
+BreakBeforeBraces: Attach
 TabWidth: 4
-BreakBeforeBraces: Allman
+UseTab: Always
+UseCRLF: false
+QualifierAlignment: Right
+PointerAlignment: Right
+ColumnLimit: 80

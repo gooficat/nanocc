@@ -1,7 +1,4 @@
 -g
 -O0
--Wall
--Wextra
--Wpedantic
--ansi
--I./inc
+-std=c89
+-I./src
