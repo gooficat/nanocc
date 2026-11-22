@@ -10,7 +10,7 @@ union {
 } TVALS;
 
 /* may not exceed 33 identifying keywords lest it encroach upon other symbols*/
-next() {
+tnext() {
 	static char line[80] = {'\n'};
 	static char *skr = line;
 	static char const *const KWORDS[] = {"extrn", "auto", "return", "goto",
@@ -58,4 +58,8 @@ rpt:
 			return *skr++;
 		}
 	goto rpt;
+}
+
+next() {
+	return tnext();
 }

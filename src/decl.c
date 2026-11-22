@@ -83,6 +83,7 @@ fexpr(int tf) {
 		fprintf(stdout, "\tmov $%ld, %%rax\n", TVALS.igr);
 		break;
 	case 0xFF: {
+		printf("Ident\n");
 		exit(EXIT_FAILURE);
 	}
 	}
@@ -93,21 +94,25 @@ expr() {
 	return fexpr(next());
 }
 
-upon(char *n) {
+upon(int t, char *n) {
 	struct decl *d;
 	long long p;
-	for (d = DECLS; strcmp(n, d->name); ++d)
+
+	for (d = DECL; strcmp(n, d->name); --d)
 		if (d->type == 1)
 			++p;
-	switch (next()) {
+	switch (t) {
 	case '(':
 		args();
 		if (d->type == 1)
 			fprintf(stdout, "\tcall %lld(%%rsp)\n", p * 8);
 		else
 			fprintf(stdout, "\tcall %s\n", n);
+
+		break;
 	case '=':
 		expr();
+		break;
 	default:
 		return 1;
 	}
@@ -120,7 +125,7 @@ func() {
 		strcpy(DECL->name, TVALS.str), DECL->type = 1, DECL->scope = SCOPE,
 									   ++DECL, next();
 	next(); /* { */
-	while (stmt())
+	while (!stmt())
 		;
 	return 0;
 }
@@ -144,11 +149,8 @@ stmt() {
 	case 3: {
 		l = LABLS;
 		next();
-		while (l != LABL) {
-			if (!strcmp(l->name, TVALS.str))
-				break;
+		while (strcmp(l->name, TVALS.str))
 			--l;
-		}
 		fprintf(stdout, "\tgoto %s%d\n", l->name, l->disam);
 		break;
 	}
@@ -159,14 +161,21 @@ stmt() {
 			fprintf(stdout, "\t\t%s%d:\n", l->name, l->disam),
 				LABL->disam = DISAM++, strcpy(LABL++->name, n);
 		else
-			upon(n);
-		break;
+			upon(t, n);
+		return 0;
 	}
 	case 0:
 	case 1:
-		return fdecl(t);
+		fdecl(t);
+		break;
+	case ';':
+		return stmt();
+	case 0xEF:
+	case '}':
+		return 1;
 	default:
-		return fexpr(t);
+		fexpr(t);
+		break;
 	}
 	return 0;
 }
