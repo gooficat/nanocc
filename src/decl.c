@@ -1,6 +1,11 @@
-#include "tok.h"
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
+
+extern union {
+	char str[8];
+	long igr;
+	double flt;
+} TVALS;
 
 static int SCOPE = 0;
 
@@ -13,60 +18,38 @@ enum {
 struct decl {
 	int type;
 	int scope;
-	char const *name;
-	struct decl *next;
+	char name[8];
 };
 
-struct decl DECL;
+extern struct decl DECLS[512];
 
 dout(struct decl *d) {
-	struct decl *b;
-	b = malloc(sizeof *b);
-	*b = DECL;
-	DECL.scope = SCOPE;
-	DECL = *d;
-	DECL.next = d;
+	if (SCOPE > 0) {
+		fprintf(stdout, "\t\t%s:\n", d->name);
+	} else {
+		fprintf(stdout, "push %%rax\n");
+	}
+	return 0;
 }
 
 decl() {
+	struct decl *d;
+	d = DECLS;
+	while (*d->name)
+		++d;
+	if (next() != 0xFF) {
+		return -1;
+	}
+	strcpy(d->name, TVALS.str);
 	next();
-	struct decl n_decl;
-
-	if (TOK.type == TOK_EOF) {
-		return 0;
-	}
-
-	if (TOK.type == TOK_EXTRN) {
-		next();
-		n_decl.type = DECL_EXTRN;
-	} else if (TOK.type == TOK_AUTO) {
-		next();
-		n_decl.type = DECL_AUTO;
-	} else {
-		n_decl.type = DECL_STATIC;
-	}
-
-	if (TOK.type == TOK_PAREN_L) {
-		func();
-		return 1;
-	}
-
-	for (;;) {
-		n_decl.name = TOK.str;
-		next();
-
-		dout(&n_decl);
-
-		if (TOK.type == TOK_SEMI) {
-			break;
-		}
-	}
-
-	next(); /* ; */
-
-	return 2;
+	return 0;
 }
 
 func() {
 	fprintf(stderr, "Function decl (unimplemented)\n");
+	return -1;
+	/*	while (decl())
+		;*/
 }
+
+struct decl DECLS[512] = {0};
