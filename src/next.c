@@ -13,7 +13,8 @@ union {
 next() {
 	static char line[80] = {'\n'};
 	static char *skr = line;
-	static char const *const KWORDS[] = {"auto", "return", "goto", NULL};
+	static char const *const KWORDS[] = {"extrn", "auto", "return", "goto",
+										 NULL};
 	int i;
 rpt:
 	/* number */
