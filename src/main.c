@@ -6,7 +6,7 @@ extern union {
 } TVALS;
 
 main() {
-	fprintf(stdout, ".code64\n"
+	fprintf(stdout, ".code32\n"
 					".text\n");
 	while (!decl())
 		;

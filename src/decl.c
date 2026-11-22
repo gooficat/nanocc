@@ -61,7 +61,7 @@ ident:
 			fprintf(stdout, "\t\t.globl %s\n\t\t%s:\n", d->name, d->name),
 				expr();
 		else
-			cval(), fprintf(stdout, "\tpush %%rax\n"), ++STKD;
+			cval(), fprintf(stdout, "\tpush %%eax\n"), ++STKD;
 	default:
 		return 0;
 	}
@@ -80,7 +80,7 @@ fexpr(int tf) {
 	case 0xFD:
 		exit(EXIT_FAILURE);
 	case 0xFE:
-		fprintf(stdout, "\tmov $%ld, %%rax\n", TVALS.igr);
+		fprintf(stdout, "\tmov $%ld, %%eax\n", TVALS.igr);
 		break;
 	case 0xFF: {
 		printf("Ident\n");
@@ -102,14 +102,15 @@ upon(int t, char *n) {
 		if (d->type == 1)
 			++p;
 	switch (t) {
-	case '(':
-		args();
+	case '(': {
+		int i;
+		i = args();
 		if (d->type == 1)
-			fprintf(stdout, "\tcall %lld(%%rsp)\n", p * 8);
+			fprintf(stdout, "\tcall %lld(%%esp)\n", p * 4);
 		else
 			fprintf(stdout, "\tcall %s\n", n);
-
-		break;
+		fprintf(stdout, "\tadd $%d, %%esp\n", i);
+	} break;
 	case '=':
 		expr();
 		break;
@@ -130,13 +131,18 @@ func() {
 	return 0;
 }
 
-args() {
+rargs(int *i) {
+	++*i;
 	expr();
 	if (next() != ')') {
-		args();
+		rargs(i);
 	}
-	fputs("\tpush %rax\n", stdout);
+	fputs("\tpush %eax\n", stdout);
 	return 0;
+}
+args() {
+	int i;
+	return i = 0, rargs(&i), i;
 }
 
 stmt() {
@@ -182,8 +188,8 @@ stmt() {
 
 scenter() {
 	++SCOPE;
-	fputs("\tpush %rbp\n"
-		  "\tmov %rsp, %rbp\n",
+	fputs("\tpush %ebp\n"
+		  "\tmov %esp, %ebp\n",
 		  stdout);
 	return 0;
 }
@@ -198,8 +204,8 @@ scexit() {
 		++d;
 	}
 
-	fputs("\tmov %rbp, %rsp\n"
-		  "\tpop %rbp\n",
+	fputs("\tmov %ebp, %esp\n"
+		  "\tpop %ebp\n",
 		  stdout);
 	return 0;
 }
