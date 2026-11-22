@@ -54,11 +54,12 @@ ident:
 	strcpy(d->name, TVALS.str);
 	switch (next()) {
 	case '(':
-		fprintf(stdout, "\t\t%s:\n", d->name);
+		fprintf(stdout, ".globl %s\n\t\t%s:\n", d->name, d->name);
 		return func();
 	case '=':
 		if (SCOPE)
-			fprintf(stdout, "\t\t%s:\n", d->name), expr();
+			fprintf(stdout, "\t\t.globl %s\n\t\t%s:\n", d->name, d->name),
+				expr();
 		else
 			cval(), fprintf(stdout, "\tpush %%rax\n"), ++STKD;
 	default:
@@ -173,7 +174,7 @@ stmt() {
 scenter() {
 	++SCOPE;
 	fputs("\tpush %rbp\n"
-		  "\tmov %rsp, %%rbp\n",
+		  "\tmov %rsp, %rbp\n",
 		  stdout);
 	return 0;
 }
