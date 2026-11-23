@@ -36,6 +36,8 @@ struct labl *LABL = LABLS;
 
 fdecl(int ft) {
 	struct decl *d;
+	while (ft == ';')
+		ft = next();
 	d = DECL++;
 	switch (ft) {
 	case 0: /* extrn */
@@ -46,10 +48,11 @@ fdecl(int ft) {
 		break;
 	case 0xEF: /* eof */
 		return -1;
-	default:
+	case 0xFF:
 		goto ident;
+	default:
+		exit(EXIT_FAILURE);
 	}
-	next();
 ident:
 	strcpy(d->name, TVALS.str);
 	switch (next()) {
@@ -57,34 +60,49 @@ ident:
 		fprintf(stdout, ".globl %s\n\t\t%s:\n", d->name, d->name);
 		return func();
 	case '=':
-		if (SCOPE)
+		if (!SCOPE)
 			fprintf(stdout, "\t\t.globl %s\n\t\t%s:\n", d->name, d->name),
-				expr();
+				cval();
 		else
-			cval(), fprintf(stdout, "\tpush %%eax\n"), ++STKD;
+			expr(), fprintf(stdout, "\tpush %%eax\n"), ++STKD;
 	default:
 		return 0;
 	}
 }
 
 decl() {
-	return fdecl(next());
+	int n;
+	n = next();
+	return fdecl(n);
 }
 
 cval() {
-	return 0;
+	switch (next()) {
+	case 0xFD:
+		fprintf(stdout, ".float %f\n", TVALS.flt);
+		return 0;
+	case 0xFE:
+		fprintf(stdout, ".int %ld\n", TVALS.igr);
+		return 0;
+	default:
+		exit(EXIT_FAILURE);
+	}
 }
 
 fexpr(int tf) {
 	switch (tf) {
 	case 0xFD:
-		exit(EXIT_FAILURE);
+		fprintf(stdout, "\fld $%lf\n", TVALS.flt);
+
 	case 0xFE:
 		fprintf(stdout, "\tmov $%ld, %%eax\n", TVALS.igr);
 		break;
 	case 0xFF: {
-		printf("Ident\n");
-		exit(EXIT_FAILURE);
+		char iden[8];
+		strcpy(iden, TVALS.str);
+		if ((tf = next()), tf != ';' && tf != '}')
+			upon(tf, iden);
+		break;
 	}
 	}
 	return 0;
@@ -113,6 +131,11 @@ upon(int t, char *n) {
 	} break;
 	case '=':
 		expr();
+		fputs("\tmov %%rax, ", stdout);
+		if (d->type == 1)
+			fprintf(stdout, "%lld(%%esp)\n", p * 4);
+		else
+			fprintf(stdout, "%s\n", n);
 		break;
 	default:
 		return 1;
@@ -140,6 +163,7 @@ rargs(int *i) {
 	fputs("\tpush %eax\n", stdout);
 	return 0;
 }
+
 args() {
 	int i;
 	return i = 0, rargs(&i), i;
