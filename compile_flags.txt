@@ -1,4 +1,7 @@
 -g
 -O0
--ansi
+-std=c23
 -I./src
+-Wall
+-Wextra
+-Wpedantic
