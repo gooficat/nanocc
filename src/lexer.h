@@ -28,9 +28,12 @@ typedef struct {
 	char const *file_path;
 } Lexer;
 
-Lexer Lexer_new(char const *file_path, Pool *pool);
+struct Context;
+
+Lexer Lexer_new(char const *file_path, struct Context *ctx);
 Token Lexer_peek(Lexer const *lexer);
-Token Lexer_consume(Lexer *lexer, Pool *pool);
-Token Lexer_next(Lexer *lexer, Pool *pool);
+Token Lexer_consume(Lexer *lexer, struct Context *ctx);
+Token Lexer_next(Lexer *lexer, struct Context *ctx);
+void Lexer_close(Lexer *lexer);
 
 extern char const *const TOKS[];

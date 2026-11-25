@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "const.h"
+#include "context.h"
 #include "error.h"
 #include "pool.h"
 #include <ctype.h>
@@ -8,40 +9,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void Lexer_get_line(Lexer *lexer) {
+static void Lexer_get_line(Lexer *lexer, Context *ctx) {
 	if (!fgets(lexer->line_buf, LINE_BUF_MAX, lexer->file_ptr)) {
 		lexer->line_buf[0] = '\0';
 	} else {
 		size_t line_len = strlen(lexer->line_buf);
 		if (line_len > 0 && lexer->line_buf[line_len - 1] != '\n') {
-			Error_terminate((Error){
-				.file_path = lexer->file_path,
-				.type = ERROR_SYNTAX,
-				.line = lexer->line_num,
-				.col = lexer->col_num,
-				.msg = "Next line in the file is too long, or the file does "
-					   "not end in a new line.",
-			});
+			Context_error_terminate(
+				ctx, ERROR_SYNTAX,
+				"Next line in the file is too long, or the file does "
+				"not end in a new line.");
 		}
 	}
 	lexer->col_num = 0;
 	lexer->line_num += 1;
 }
 
-Lexer Lexer_new(char const *file_path, Pool *pool) {
+Lexer Lexer_new(char const *file_path, Context *ctx) {
 	Lexer lexer;
 	lexer.file_path = file_path;
 	lexer.file_ptr = fopen(file_path, "r");
 	if (!lexer.file_path) {
-		Error_terminate((Error){
-			.type = ERROR_PARAMS,
-			.file_path = file_path,
-			.msg = "Failed to open file",
-		});
+		Context_error_terminate(ctx, ERROR_PARAMS, "Failed to open file");
 	}
 	lexer.line_num = 0;
-	Lexer_get_line(&lexer);
-	Lexer_next(&lexer, pool);
+	Lexer_get_line(&lexer, ctx);
+	Lexer_next(&lexer, ctx);
 	return lexer;
 }
 
@@ -49,9 +42,9 @@ Token Lexer_peek(Lexer const *lexer) {
 	return lexer->token;
 }
 
-Token Lexer_consume(Lexer *lexer, Pool *pool) {
+Token Lexer_consume(Lexer *lexer, Context *ctx) {
 	Token token = lexer->token;
-	Lexer_next(lexer, pool);
+	Lexer_next(lexer, ctx);
 	return token;
 }
 
@@ -66,7 +59,7 @@ bool first_number_has_decimal_point(char const *src) {
 	}
 }
 
-Token Lexer_next(Lexer *lexer, Pool *pool) {
+Token Lexer_next(Lexer *lexer, Context *ctx) {
 	bool token_found = false;
 	Token token;
 
@@ -76,7 +69,7 @@ Token Lexer_next(Lexer *lexer, Pool *pool) {
 			token.type = TOK_EOF;
 			token_found = true;
 		} else if (*src == '\n') {
-			Lexer_get_line(lexer);
+			Lexer_get_line(lexer, ctx);
 			src = lexer->line_buf + lexer->col_num;
 		} else if (*src == '"') {
 			C_Const constant;
@@ -91,7 +84,7 @@ Token Lexer_next(Lexer *lexer, Pool *pool) {
 			memcpy(constant.val.string, src, str_length);
 			constant.val.string[str_length] = '\0';
 
-			token.index = Pool_add_or_get_const(pool, constant);
+			token.index = Pool_add_or_get_const(&ctx->pool, constant);
 			token_found = true;
 			src += str_length;
 		} else if (*src == '\'') {
@@ -99,13 +92,9 @@ Token Lexer_next(Lexer *lexer, Pool *pool) {
 			constant.type = C_CONST_INTEGER;
 			src += 1;
 			if (*src == '\\') {
-				Error_terminate((Error){
-					.type = ERROR_INTERNAL,
-					.col = lexer->col_num,
-					.line = lexer->line_num,
-					.file_path = lexer->file_path,
-					.msg = "Escape sequences are not implemented.",
-				});
+				Context_error_terminate(
+					ctx, ERROR_INTERNAL,
+					"Escape sequences are not implemented.");
 			} else {
 				constant.val.integer = *src;
 				src += 1;
@@ -120,15 +109,11 @@ Token Lexer_next(Lexer *lexer, Pool *pool) {
 			if (!first_number_has_decimal_point(src)) {
 				constant.type = C_CONST_INTEGER;
 				constant.val.integer = strtoll(src, (char **)&src, 0);
-				Pool_add_or_get_const(pool, constant);
+				Pool_add_or_get_const(&ctx->pool, constant);
 			} else {
-				Error_terminate((Error){
-					.type = ERROR_INTERNAL,
-					.line = lexer->line_num,
-					.col = lexer->col_num,
-					.file_path = lexer->file_path,
-					.msg = "Unimplemented: Floating point numbers.",
-				});
+				Context_error_terminate(
+					ctx, ERROR_INTERNAL,
+					"Unimplemented: Floating point numbers.");
 			}
 		} else {
 			for (size_t i = 0; TOKS[i] != NULL; i += 1) {
@@ -153,7 +138,7 @@ Token Lexer_next(Lexer *lexer, Pool *pool) {
 				memcpy(ident, src, ident_len);
 				ident[ident_len] = '\0';
 
-				token.index = Pool_add_or_get_ident(pool, ident);
+				token.index = Pool_add_or_get_ident(&ctx->pool, ident);
 				token_found = true;
 				src += ident_len;
 			}
@@ -163,4 +148,9 @@ Token Lexer_next(Lexer *lexer, Pool *pool) {
 	lexer->token = token;
 
 	return token;
+}
+
+void Lexer_close(Lexer *lexer) {
+	fclose(lexer->file_ptr);
+	memset(lexer, 0, sizeof *lexer);
 }
