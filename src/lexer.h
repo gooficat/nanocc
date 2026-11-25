@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pool.h"
 #include <stdio.h>
 
 #define LINE_BUF_MAX 4096
@@ -27,9 +28,9 @@ typedef struct {
 	char const *file_path;
 } Lexer;
 
-Lexer Lexer_new(char const *file_path);
+Lexer Lexer_new(char const *file_path, Pool *pool);
 Token Lexer_peek(Lexer const *lexer);
-Token Lexer_consume(Lexer *lexer);
-void Lexer_next(Lexer *lexer);
+Token Lexer_consume(Lexer *lexer, Pool *pool);
+Token Lexer_next(Lexer *lexer, Pool *pool);
 
 extern char const *const TOKS[];
