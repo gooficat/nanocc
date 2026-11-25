@@ -1,6 +1,5 @@
 #pragma once
 
-#include "pool.h"
 #include <stdio.h>
 
 #define LINE_BUF_MAX 4096
