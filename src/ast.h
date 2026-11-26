@@ -16,6 +16,7 @@ typedef enum {
 	C_TYPE_INT,
 	C_TYPE_FLOAT,
 	C_TYPE_STRUCT,
+	C_TYPE_UNION,
 	C_TYPE_ARRAY,
 	C_TYPE_POINTER,
 	C_TYPE_FUNCTION,
@@ -39,6 +40,7 @@ typedef struct {
 
 typedef struct {
 	char const *name;
+	C_Storage storage;
 	C_Type type;
 } ASTDecl;
 
@@ -111,3 +113,5 @@ typedef struct ASTStmt {
 typedef struct {
 	ASTDeclList decls;
 } AST;
+
+AST AST_generate(struct Context *ctx);

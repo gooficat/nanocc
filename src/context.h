@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ast.h"
 #include "lexer.h"
 #include "parser.h"
 #include "pool.h"
@@ -10,6 +11,7 @@ typedef struct Context {
 	Lexer lexer;
 	Pool pool;
 	Parser parser;
+	AST ast;
 	Writer writer;
 } Context;
 

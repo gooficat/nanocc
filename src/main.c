@@ -1,18 +1,14 @@
 
 
+#include "ast.h"
 #include "context.h"
 #include "lexer.h"
 #include "pool.h"
 #include <stdio.h>
 
-int main() {
-	Context ctx;
-
-	ctx.pool = Pool_new();
-	ctx.lexer = Lexer_new("tests/1.c", &ctx);
-
-	while (ctx.lexer.token.type != TOK_EOF) {
-		switch (ctx.lexer.token.type) {
+void print_tokens(Context *ctx) {
+	while (ctx->lexer.token.type != TOK_EOF) {
+		switch (ctx->lexer.token.type) {
 		case TOK_AUTO:
 			printf("AUTO");
 			break;
@@ -27,7 +23,7 @@ int main() {
 			break;
 		case TOK_IDENTIFIER:
 			printf("IDENTIFIER `%s`",
-				   ctx.pool.idents.val[ctx.lexer.token.index]);
+				   ctx.pool.idents.val[ctx->lexer.token.index]);
 			break;
 		case TOK_CONSTANT:
 			printf("CONSTANT");
@@ -37,6 +33,13 @@ int main() {
 			break;
 		}
 		putchar('\n');
-		Lexer_next(&ctx.lexer, &ctx);
+		Lexer_next(&ctx->lexer, ctx);
 	}
+}
+
+int main() {
+	Context ctx;
+	ctx.pool = Pool_new();
+	ctx.lexer = Lexer_new("tests/1.c", &ctx);
+	ctx.ast = AST_generate(&ctx);
 }
