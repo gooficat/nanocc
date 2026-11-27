@@ -1,8 +1,0 @@
-BasedOnStyle: Microsoft
-BreakBeforeBraces: Attach
-TabWidth: 4
-UseTab: Always
-UseCRLF: false
-QualifierAlignment: Right
-PointerAlignment: Right
-ColumnLimit: 80
