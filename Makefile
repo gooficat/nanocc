@@ -30,8 +30,8 @@ OBJ_DIR := obj
 OUT_CFLAGS := -L$(BIN_DIR) -Wl,-rpath,'$$ORIGIN'
 
 
-SRCS := $(shell find $(SRC_DIR) -name "*.c")
-OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
+SRCS := $(shell find $(SRC_DIR) -name "*.*")
+OBJS := $(patsubst $(SRC_DIR)/%,$(OBJ_DIR)/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
 
 INSIDE_LINKS := $(patsubst %,$(BIN_DIR)/lib%.so,$(SUBTARGETS))
@@ -55,9 +55,13 @@ $(OUT): $(LINKS) $(OBJS)
 	@mkdir -p $(dir $@)
 	$(CC) -o $@ $(OBJS) $(CFLAGS) $(OUT_CFLAGS) $(patsubst %,-l%,$(LINKS))
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.c.o: $(SRC_DIR)/%.c
 	mkdir -p $(dir $@)
 	$(CC) -c -o $@ $< $(CFLAGS) -MMD -MP
+
+$(OBJ_DIR)/%.s.o: $(SRC_DIR)/%.s
+	mkdir -p $(dir $@)
+	$(CC) -c -o $@ $<
 
 .PHONY: clean
 
